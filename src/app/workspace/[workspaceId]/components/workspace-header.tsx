@@ -47,7 +47,7 @@ export const WorkspaceHeader = ({
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
-              className="font-semibold text-lg w-auto p-2  text-white hover:bg-white/10 hover:text-white transition-all duration-200 flex items-center rounded-md"
+              className="font-semibold text-lg w-auto p-2 text-white hover:bg-white/10 hover:text-white transition-all duration-200 flex items-center rounded-md"
               variant="ghost"
               size="lg"
             >

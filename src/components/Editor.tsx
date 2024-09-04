@@ -9,10 +9,12 @@ import Quill, { QuillOptions } from "quill";
 import "quill/dist/quill.snow.css";
 import { Button } from "@/components/ui/button";
 import { PiTextAa } from "react-icons/pi";
-import { ImagePlus, Send, Smile } from "lucide-react";
+import { ImagePlus, Send, Smile, XIcon } from "lucide-react";
 import { Hint } from "./hint";
 import { Delta, Op } from "quill/core";
 import { cn } from "@/lib/utils";
+import { EmojiPopover } from "./emoji-popover";
+import Image from "next/image";
 
 const editorStyles = `
     .quill-editor {
@@ -109,19 +111,19 @@ const Editor = ({
   placeholder = "Write something...",
 }: EditorProps) => {
   const [text, setText] = useState("");
+  const [image, setImage] = useState<File | null>(null);
   const [isToolbarVisible, setToolbarVisible] = useState(true);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const submitRef = useRef(onSubmit);
-  const cancelRef = useRef(onCancel);
   const defaultValueRef = useRef(defaultValue);
   const quillRef = useRef<Quill | null>(null);
   const placeholderRef = useRef(placeholder);
   const disabledRef = useRef(disabled);
+  const imageElementRef = useRef<HTMLInputElement>(null);
 
   useLayoutEffect(() => {
     submitRef.current = onSubmit;
-    cancelRef.current = onCancel;
     defaultValueRef.current = defaultValue;
     placeholderRef.current = placeholder;
     disabledRef.current = disabled;
@@ -149,8 +151,21 @@ const Editor = ({
             enter: {
               key: "Enter",
               handler: () => {
-                // TODO: Submit the message
-                return;
+                const text = quill.getText();
+                const addedImage = imageElementRef.current?.files?.[0] || null;
+
+                const isEmpty =
+                  !addedImage &&
+                  text.replace(/<(.|\n)*?>/g, "").trim().length === 0;
+
+                if (isEmpty) return;
+
+                const body = JSON.stringify(quill.getContents());
+
+                submitRef.current?.({
+                  body,
+                  image: addedImage,
+                });
               },
             },
             shift_enter: {
@@ -203,16 +218,59 @@ const Editor = ({
     }
   };
 
-  const isEmpty = text.replace(/<(.|\n)*?>/g, "").trim().length === 0;
+  const onEmojiSelect = (emoji: any) => {
+    const quill = quillRef.current;
+
+    quill?.insertText(quill.getSelection()?.index || 0, emoji.native);
+  };
+
+  const isEmpty = !image && text.replace(/<(.|\n)*?>/g, "").trim().length === 0;
 
   return (
     <>
       <style>{editorStyles}</style>
-      <div className="flex flex-col bg-white rounded-lg shadow-md overflow-hidden">
+      <div
+        className={cn(
+          "flex flex-col bg-white rounded-lg shadow-md overflow-hidden",
+          disabled && "opacity-50"
+        )}
+      >
+        <input
+          type="file"
+          accept="image/*"
+          ref={imageElementRef}
+          onChange={(e) => setImage(e.target.files![0])}
+          className="hidden"
+        />
         <div
           ref={containerRef}
-          className="quill-editor min-h-[150px] max-h-[300px] overflow-y-auto"
+          className={cn(
+            "quill-editor min-h-[130px] max-h-[300px] overflow-y-auto"
+          )}
         />
+        {!!image && (
+          <div className="p-2">
+            <div className="relative size-[62px] flex items-center justify-center group/image">
+              <Hint label="Remove">
+                <button
+                  onClick={() => {
+                    setImage(null);
+                    imageElementRef.current!.value = "";
+                  }}
+                  className="hidden group-hover/image:flex rounded-full bg-black/70 hover:bg-black absolute -top-2.5 -right-2.5 text-white size-6 z-[4] border-2 border-white items-center justify-center"
+                >
+                  <XIcon className="size-3.5" />
+                </button>
+              </Hint>
+              <Image
+                src={URL.createObjectURL(image)}
+                alt="Image"
+                fill
+                className="rounded-xl overflow-hidden border object-cover"
+              />
+            </div>
+          </div>
+        )}
         <div className="flex items-center justify-between p-2 bg-gray-50 border-t border-gray-200">
           <div className="flex space-x-2">
             <Hint label={isToolbarVisible ? "Hide Toolbar" : "Show Toolbar"}>
@@ -225,18 +283,20 @@ const Editor = ({
                 <PiTextAa className="h-5 w-5" />
               </Button>
             </Hint>
-            <Hint label="Add emoji">
+            <EmojiPopover hint="Emoji" onEmojiSelect={onEmojiSelect}>
               <Button size="sm" variant="ghost">
                 <Smile className="h-5 w-5" />
               </Button>
-            </Hint>
+            </EmojiPopover>
             {variant === "create" && (
               <Hint label="Add image">
                 <Button
                   disabled={disabled}
                   size="sm"
                   variant="ghost"
-                  onClick={() => {}}
+                  onClick={() => {
+                    imageElementRef.current?.click();
+                  }}
                 >
                   <ImagePlus className="h-5 w-5" />
                 </Button>
@@ -248,14 +308,19 @@ const Editor = ({
               <Button
                 variant={"outline"}
                 size={"sm"}
-                onClick={() => {}}
-                disabled={false}
+                onClick={onCancel}
+                disabled={disabled}
               >
                 Cancel
               </Button>
               <Button
                 size={"sm"}
-                onClick={() => {}}
+                onClick={() => {
+                  onSubmit({
+                    body: JSON.stringify(quillRef.current?.getContents()),
+                    image,
+                  });
+                }}
                 disabled={disabled || isEmpty}
                 className="bg-purple-600 hover:bg-purple-700 text-white"
               >
@@ -267,9 +332,15 @@ const Editor = ({
             <Hint label="Send message">
               <Button
                 disabled={isEmpty || disabled}
+                onClick={() => {
+                  onSubmit({
+                    body: JSON.stringify(quillRef.current?.getContents()),
+                    image,
+                  });
+                }}
                 size="sm"
                 className={cn(
-                  "bg-indigo-600 hover:bg-indigo-700 text-white",
+                  "bg-purple-600 hover:bg-purple-700 text-white",
                   isEmpty &&
                     "bg-white hover:bg-white text-black border border-gray-300"
                 )}
@@ -280,12 +351,19 @@ const Editor = ({
           )}
         </div>
       </div>
-      <div className="p-2 text-[10px] text-muted-foreground flex justify-start">
-        <p>
-          <strong className="text-purple-600">Shift + Enter</strong> to add a
-          new line
-        </p>
-      </div>
+      {variant === "create" && (
+        <div
+          className={cn(
+            "p-2 text-[10px] text-muted-foreground flex justify-start opacity-0 transition",
+            !isEmpty && "opacity-100"
+          )}
+        >
+          <p>
+            <strong className="text-purple-600">Shift + Enter</strong> to add a
+            new line
+          </p>
+        </div>
+      )}
     </>
   );
 };

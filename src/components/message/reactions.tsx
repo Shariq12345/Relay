@@ -1,0 +1,75 @@
+import React from "react";
+import { Doc, Id } from "../../../convex/_generated/dataModel";
+import { useWorkspaceId } from "@/hooks/use-workspace-id";
+import { useCurrentMember } from "@/features/members/api/use-current-member";
+import { cn } from "@/lib/utils";
+import { Hint } from "../hint";
+import { EmojiPopover } from "../emoji-popover";
+import { MdOutlineAddReaction } from "react-icons/md";
+
+interface ReactionsProps {
+  data: Array<
+    Omit<Doc<"reactions">, "memberId"> & {
+      count: number;
+      memberIds: Id<"members">[];
+    }
+  >;
+  onChange: (value: string) => void;
+}
+
+export const Reactions = ({ data, onChange }: ReactionsProps) => {
+  const workspaceId = useWorkspaceId();
+  const { data: currentMember } = useCurrentMember({ workspaceId });
+
+  const currentMemberId = currentMember?._id;
+
+  if (data.length === 0 || !currentMemberId) {
+    return null;
+  }
+
+  const hasReacted = data.some((reaction) =>
+    reaction.memberIds.includes(currentMemberId)
+  );
+  return (
+    <div className="flex items-center gap-1 mt-1 mb-1">
+      {data.map((reaction) => (
+        <Hint
+          label={`${reaction.count} ${reaction.count === 1 ? "person" : "people"} reacted with ${reaction.value} `}
+          key={reaction._id}
+        >
+          <button
+            onClick={() => onChange(reaction.value)}
+            key={reaction.value}
+            className={cn(
+              "h-6 px-2 rounded-full bg-slate-200/70 border border-transparent text-slate-800 flex items-center gap-x-1",
+              reaction.memberIds.includes(currentMemberId) &&
+                "bg-purple-100/70 border-purple-500 text-white"
+            )}
+          >
+            {reaction.value}
+            <span
+              className={cn(
+                "text-xs font-semibold text-muted-foreground",
+                reaction.memberIds.includes(currentMemberId) &&
+                  "text-purple-500"
+              )}
+            >
+              {reaction.count}
+            </span>
+          </button>
+        </Hint>
+      ))}
+      <EmojiPopover
+        hint="Add reaction"
+        onEmojiSelect={(emoji) => onChange(emoji.native)}
+      >
+        <button
+          className="h-7 px-3 rounded-full bg-slate-200/70 border border-transparent hover:border-slate-500 text-slate-800 flex items-center gap-x-1
+        "
+        >
+          <MdOutlineAddReaction className="h-4 w-4 text-slate-800" />
+        </button>
+      </EmojiPopover>
+    </div>
+  );
+};

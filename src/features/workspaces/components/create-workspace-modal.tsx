@@ -27,7 +27,7 @@ export const CreateWorkSpaceModal = () => {
   };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    // TODO: Implement workspace creation logic
+    // Implement workspace creation logic
     e.preventDefault();
     mutate(
       { name },
@@ -76,7 +76,7 @@ export const CreateWorkSpaceModal = () => {
               type="button"
               variant="outline"
               onClick={handleClose}
-              disabled={false}
+              disabled={isPending}
               className="px-4 py-2"
             >
               Cancel

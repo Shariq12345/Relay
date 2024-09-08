@@ -302,8 +302,50 @@ export const remove = mutation({
       .withIndex("by_workspace_id", (q) => q.eq("workspaceId", args.id))
       .collect();
 
+    const channels = await ctx.db
+      .query("channels")
+      .withIndex("by_workspace_id", (q) => q.eq("workspaceId", args.id))
+      .collect();
+
+    const reactions = await ctx.db
+      .query("reactions")
+      .withIndex("by_workspace_id", (q) => q.eq("workspaceId", args.id))
+      .collect();
+
+    const conversations = await ctx.db
+      .query("conversations")
+      .withIndex("by_workspace_id", (q) => q.eq("workspaceId", args.id))
+      .collect();
+
+    const messages = await ctx.db
+      .query("messages")
+      .withIndex("by_workspace_id", (q) => q.eq("workspaceId", args.id))
+      .collect();
+
     // Delete all members
-    await Promise.all(members.map((member) => ctx.db.delete(member._id)));
+    for (const member of members) {
+      await ctx.db.delete(member._id);
+    }
+
+    // Delete all channels
+    for (const channel of channels) {
+      await ctx.db.delete(channel._id);
+    }
+
+    // Delete all reactions
+    for (const reaction of reactions) {
+      await ctx.db.delete(reaction._id);
+    }
+
+    // Delete all conversations
+    for (const conversation of conversations) {
+      await ctx.db.delete(conversation._id);
+    }
+
+    // Delete all messages
+    for (const message of messages) {
+      await ctx.db.delete(message._id);
+    }
 
     // Delete the workspace
     await ctx.db.delete(args.id);

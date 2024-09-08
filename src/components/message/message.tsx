@@ -116,7 +116,7 @@ export const Message = ({
       {
         onSuccess: () => {
           toast.success("Message Deleted!");
-          // TODO: Close thread if opened
+          // Close thread if opened
           if (parentMessageId === id) {
             onClose();
           }
@@ -244,7 +244,7 @@ export const Message = ({
               <div className="text-sm">
                 <button
                   className="font-bold text-primary cursor-default"
-                  onClick={() => onOpenProfile(memberId)} 
+                  onClick={() => onOpenProfile(memberId)}
                 >
                   {authorName}
                 </button>
